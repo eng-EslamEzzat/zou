@@ -143,7 +143,6 @@ def create_xml_timeline(timeline_name, fps, clip_items):
         
     # Convert to string
     xml_str = ET.tostring(xmeml, encoding='UTF-8', method='xml')
-    ET.ElementTree(xmeml).write("/home/kitsu/Downloads/ttest.xml", encoding="UTF-8", xml_declaration=True)
     return xml_str.decode('UTF-8')
 
 if __name__ == '__main__':
