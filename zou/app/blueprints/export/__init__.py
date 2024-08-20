@@ -16,6 +16,7 @@ from zou.app.blueprints.export.csv.task_types import TaskTypesCsvExport
 from zou.app.blueprints.export.csv.tasks import TasksCsvExport
 from zou.app.blueprints.export.csv.time_spents import TimeSpentsCsvExport
 from zou.app.blueprints.export.csv.edits import EditsCsvExport
+from zou.app.blueprints.export.xml.playlists import PlaylistXmlExport
 
 routes = [
     ("/export/csv/projects/<project_id>/assets.csv", AssetsCsvExport),
@@ -28,6 +29,7 @@ routes = [
     ("/export/csv/tasks.csv", TasksCsvExport),
     ("/export/csv/time-spents.csv", TimeSpentsCsvExport),
     ("/export/csv/task-types.csv", TaskTypesCsvExport),
+    ("/export/xml/playlists/<playlist_id>", PlaylistXmlExport),
 ]
 
 blueprint = Blueprint("export", "export")
