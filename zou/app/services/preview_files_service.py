@@ -34,7 +34,7 @@ from zou.app.utils import (
     thumbnail as thumbnail_utils,
 )
 from zou.app.services.exception import (
-    ArgumentsException,
+    WrongParameterException,
     PreviewFileNotFoundException,
     ProjectNotFoundException,
     EpisodeNotFoundException,
@@ -561,7 +561,7 @@ def get_running_preview_files():
         result = preview_file.serialize()
         result["project_id"] = fields.serialize_value(project_id)
         result["task_type_id"] = fields.serialize_value(task_type_id)
-        (result["full_entity_name"], _) = names_service.get_full_entity_name(
+        result["full_entity_name"], _, _ = names_service.get_full_entity_name(
             entity_id
         )
         results.append(result)
@@ -650,7 +650,7 @@ def extract_tile_from_preview_file(preview_file):
         extracted_tile_path = movie.generate_tile(preview_file_path)
         return extracted_tile_path
     else:
-        return ArgumentsException("Preview file is not a movie")
+        return WrongParameterException("Preview file is not a movie")
 
 
 def reset_movie_files_metadata():

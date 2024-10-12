@@ -11,6 +11,7 @@ from flask_jwt_extended import (
 )
 from flask_socketio import SocketIO, disconnect, join_room, emit
 from flask_sqlalchemy import SQLAlchemy
+
 from zou.app import config
 from zou.app.stores import auth_tokens_store
 from zou.app.utils.monitoring import init_monitoring
@@ -85,7 +86,16 @@ def get_redis_url():
     redis_host = config.KEY_VALUE_STORE["host"]
     redis_port = config.KEY_VALUE_STORE["port"]
     db_index = config.KV_EVENTS_DB_INDEX
-    return "redis://%s:%s/%s" % (redis_host, redis_port, db_index)
+    redis_password = config.KEY_VALUE_STORE["password"]
+    if redis_password:
+        return "redis://:%s@%s:%s/%s" % (
+            redis_password,
+            redis_host,
+            redis_port,
+            db_index,
+        )
+    else:
+        return "redis://%s:%s/%s" % (redis_host, redis_port, db_index)
 
 
 # Routes

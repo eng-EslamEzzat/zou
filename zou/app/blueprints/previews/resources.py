@@ -35,7 +35,7 @@ from zou.app.utils import (
     date_helpers,
 )
 from zou.app.services.exception import (
-    ArgumentsException,
+    WrongParameterException,
     PreviewBackgroundFileNotFoundException,
     PreviewFileReuploadNotAllowedException,
 )
@@ -65,6 +65,7 @@ ALLOWED_FILE_EXTENSION = [
     "glb",
     "gltf",
     "hip",
+    "kra",
     "ma",
     "mb",
     "mp3",
@@ -73,9 +74,12 @@ ALLOWED_FILE_EXTENSION = [
     "psd",
     "psb",
     "rar",
+    "sai",
+    "sai2",
     "sbbkp",
     "svg",
     "swf",
+    "tvpp",
     "wav",
     "zip",
 ]
@@ -812,7 +816,29 @@ class BasePreviewPictureResource(BasePreviewFileResource):
             abort(404)
 
 
-class PreviewFileThumbnailResource(BasePreviewPictureResource):
+class BasePreviewFileThumbnailResource(BasePreviewPictureResource):
+    """
+    Base class to download a thumbnail for a preview file.
+    """
+
+    def is_allowed(self, preview_file_id):
+        self.preview_file = files_service.get_preview_file(preview_file_id)
+        task = tasks_service.get_task(self.preview_file["task_id"])
+        entity = entities_service.get_entity(task["entity_id"])
+        if (
+            entity["preview_file_id"] != preview_file_id
+            or not entity["is_shared"]
+            or permissions.has_vendor_permissions()
+        ):
+            user_service.check_project_access(task["project_id"])
+            user_service.check_entity_access(task["entity_id"])
+        self.last_modified = date_helpers.get_datetime_from_string(
+            self.preview_file["updated_at"]
+        )
+
+
+class PreviewFileThumbnailResource(BasePreviewFileThumbnailResource):
+
     def __init__(self):
         BasePreviewPictureResource.__init__(self, "thumbnails")
 
@@ -831,12 +857,12 @@ class PreviewFilePreviewResource(BasePreviewPictureResource):
         BasePreviewPictureResource.__init__(self, "previews")
 
 
-class PreviewFileThumbnailSquareResource(BasePreviewPictureResource):
+class PreviewFileThumbnailSquareResource(BasePreviewFileThumbnailResource):
     def __init__(self):
         BasePreviewPictureResource.__init__(self, "thumbnails-square")
 
 
-class PreviewFileOriginalResource(BasePreviewPictureResource):
+class PreviewFileOriginalResource(BasePreviewFileThumbnailResource):
     def __init__(self):
         BasePreviewPictureResource.__init__(self, "original")
 
@@ -980,6 +1006,7 @@ class BaseThumbnailResource(Resource):
 
 
 class PersonThumbnailResource(BaseThumbnailResource):
+
     def __init__(self):
         BaseThumbnailResource.__init__(
             self,
@@ -1027,11 +1054,13 @@ class ProjectThumbnailResource(BaseThumbnailResource):
             "projects",
             projects_service.get_project,
             projects_service.update_project,
+            thumbnail_utils.BIG_SQUARE_SIZE,
         )
 
     def check_allowed_to_get(self, instance_id):
         super().check_allowed_to_get(instance_id)
-        user_service.check_project_access(instance_id)
+        if not permissions.has_manager_permissions():
+            user_service.check_project_access(instance_id)
 
 
 class CreateProjectThumbnailResource(ProjectThumbnailResource):
@@ -1071,7 +1100,7 @@ class SetMainPreviewResource(Resource, ArgsMixin):
         user_service.check_entity_access(task["entity_id"])
         if frame_number is not None:
             if preview_file["extension"] != "mp4":
-                raise ArgumentsException(
+                raise WrongParameterException(
                     "Can't use a given frame on non movie preview"
                 )
             preview_files_service.replace_extracted_frame_for_preview_file(

@@ -14,6 +14,7 @@ swagger_config = {
     "static_url_path": "/docs",
     "swagger_ui": True,
     "specs_route": "/apidocs/",
+    "openapi": "3.0.2",
 }
 
 
@@ -30,26 +31,18 @@ An easy to use Python client to access this API is available:
 
 <p>Before you can use any of the endpoints outline below,
 you will have to get a JWT token to authorize your requests.
+</p>
 
-You can get a authorization token using a (form-encoded) POST request to ```/auth/login```.
-With curl this would look something like ```curl -X POST <server_address>/auth/login -d "email=<youremail>&password=<yourpassword>```.
+<p>
+You will find the information to retrieve it in the 
+<a href="#tag/Authentication">Zou documentation</a>.
+</p>
 
-The response is a JSON object, specifically you'll need to provide the ```access_token``` for your future requests.
-
-Here is a complete authentication process as an example (again using curl):
-```
-$ curl -X POST <server_address>/api/auth/login -d "email=<youremail>&password=<yourpassword>"'
-{{"login": true", "access_token": "eyJ0e...", ...}}
-$ jwt=eyJ0e...  # Store the access token for easier use
-$ curl -H "Authorization: Bearer $jwt" <server_address>/api/data/projects
-[{{...}},
-{{...}}]
-```
 [OpenAPI definition](/openapi.json)
 """
 
 swagger_template = {
-    "openapi": "3.1",
+    "openapi": "3.0.2",
     "info": {
         "title": "Kitsu API",
         "description": description,
@@ -70,12 +63,14 @@ swagger_template = {
     "host": "localhost:8080",
     "basePath": "/api",
     "schemes": ["http", "https"],
-    "securityDefinitions": {
-        "JWT Authorization": {
-            "name": "Authorization",
-            "in": "header",
-            "type": "apiKey",
-            "description": "Format in header: **Authorization: Bearer {token}**. \n\n Value example: Bearer xxxxx.yyyyy.zzzzz",
+    "components": {
+        "securitySchemes": {
+            "JWT Authorization": {
+                "name": "Authorization",
+                "in": "header",
+                "type": "apiKey",
+                "description": "Format in header: **Authorization: Bearer {token}**. \n\n Value example: Bearer xxxxx.yyyyy.zzzzz",
+            }
         }
     },
     "security": [{"JWT Authorization": []}],

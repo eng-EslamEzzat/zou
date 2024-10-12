@@ -18,7 +18,10 @@ from zou.app.services import (
 
 from zou.app.mixin import ArgsMixin
 from zou.app.utils import fields, query, permissions
-from zou.app.services.exception import WrongParameterException
+from zou.app.services.exception import (
+    WrongParameterException,
+    WrongParameterException,
+)
 
 
 class ShotResource(Resource, ArgsMixin):
@@ -47,6 +50,52 @@ class ShotResource(Resource, ArgsMixin):
         user_service.check_project_access(shot["project_id"])
         user_service.check_entity_access(shot["id"])
         return shot
+
+    @jwt_required()
+    def put(self, shot_id):
+        """
+        Update given shot.
+        ---
+        tags:
+        - Shots
+        parameters:
+          - in: path
+            name: shot_id
+            required: True
+            type: string
+            format: UUID
+            x-example: a24a6ea4-ce75-4665-a070-57453082c25
+          - in: body
+            name: data
+            required: True
+            type: object
+        responses:
+            200:
+                description: Update given shot
+        """
+        shot = shots_service.get_shot(shot_id)
+        user_service.check_manager_project_access(shot["project_id"])
+        data = request.json
+        if data is None:
+            raise WrongParameterException(
+                "Data are empty. Please verify that you sent JSON data and"
+                " that you set the right headers."
+            )
+        for field in [
+            "id",
+            "created_at",
+            "updated_at",
+            "instance_casting",
+            "project_id",
+            "entities_in",
+            "entities_out",
+            "type",
+            "shotgun_id",
+            "created_by",
+        ]:
+            data.pop(field, None)
+
+        return shots_service.update_shot(shot_id, data)
 
     @jwt_required()
     def delete(self, shot_id):

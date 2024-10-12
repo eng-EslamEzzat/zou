@@ -10,8 +10,11 @@ from zou.app.models.entity import (
     EntityVersion,
     EntityLink,
     EntityConceptLink,
+    ENTITY_STATUSES,
 )
+from zou.app.models.project import Project
 from zou.app.models.subscription import Subscription
+from zou.app.models.task import Task
 from zou.app.services import (
     assets_service,
     breakdown_service,
@@ -23,7 +26,9 @@ from zou.app.services import (
     user_service,
     concepts_service,
 )
-from zou.app.utils import events, date_helpers
+from zou.app.utils import date_helpers, events, permissions
+
+from zou.app.services.exception import WrongParameterException
 
 from werkzeug.exceptions import NotFound
 
@@ -56,10 +61,35 @@ class EntitiesResource(BaseModelsResource, EntityEventMixin):
     def emit_create_event(self, entity_dict):
         self.emit_event("new", entity_dict)
 
+    def check_read_permissions(self):
+        return True
+
+    def add_project_permission_filter(self, query):
+        if not permissions.has_admin_permissions():
+            query = query.join(Project).filter(
+                user_service.build_related_projects_filter()
+            )
+            if permissions.has_vendor_permissions():
+                query = query.join(Task).filter(
+                    user_service.build_assignee_filter()
+                )
+
+        return query
+
     def update_data(self, data):
         data = super().update_data(data)
         data["created_by"] = persons_service.get_current_user()["id"]
         return data
+
+    def check_creation_integrity(self, data):
+        """
+        Check if entity has a valid status.
+        """
+        if "status" in data:
+            types = [entity_status for entity_status, _ in ENTITY_STATUSES]
+            if data["status"] not in types:
+                raise WrongParameterException("Invalid status")
+        return True
 
     def all_entries(self, query=None, relations=False):
         entities = BaseModelsResource.all_entries(
@@ -216,3 +246,14 @@ class EntityResource(BaseModelResource, EntityEventMixin):
             index_service.remove_asset_index(entity_dict["id"])
         elif shots_service.is_shot(entity_dict):
             index_service.remove_shot_index(entity_dict["id"])
+
+    def update_data(self, data, instance_id):
+        """
+        Check if the entity has a valid status.
+        """
+        data = super().update_data(data, instance_id)
+        if "status" in data:
+            types = [entity_status for entity_status, _ in ENTITY_STATUSES]
+            if data["status"] not in types:
+                raise WrongParameterException("Invalid status")
+        return data

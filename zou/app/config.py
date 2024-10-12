@@ -19,6 +19,7 @@ AUTH_STRATEGY = os.getenv("AUTH_STRATEGY", "auth_local_classic")
 KEY_VALUE_STORE = {
     "host": os.getenv("KV_HOST", "localhost"),
     "port": os.getenv("KV_PORT", "6379"),
+    "password": os.getenv("KV_PASSWORD", None),
 }
 AUTH_TOKEN_BLACKLIST_KV_INDEX = 0
 MEMOIZE_DB_INDEX = 1
@@ -131,6 +132,10 @@ LDAP_FALLBACK = envtobool("LDAP_FALLBACK", False)
 LDAP_IS_AD = envtobool("LDAP_IS_AD", False)
 LDAP_IS_AD_SIMPLE = envtobool("LDAP_IS_AD_SIMPLE", False)
 LDAP_SSL = envtobool("LDAP_SSL", False)
+
+SAML_ENABLED = envtobool("SAML_ENABLED", False)
+SAML_IDP_NAME = os.getenv("SAML_IDP_NAME", "")
+SAML_METADATA_URL = os.getenv("SAML_METADATA_URL", "")
 
 LOGS_MODE = os.getenv("LOGS_MODE", "default")
 LOGS_HOST = os.getenv("LOGS_HOST", "localhost")

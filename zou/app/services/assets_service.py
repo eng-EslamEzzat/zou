@@ -84,7 +84,7 @@ def build_entity_type_asset_type_filter():
     return ~EntityType.id.in_(ids_to_exclude)
 
 
-def get_assets(criterions={}):
+def get_assets(criterions={}, is_admin=False):
     """
     Get all assets for given criterions.
     """
@@ -101,6 +101,12 @@ def get_assets(criterions={}):
     if assigned_to:
         query = query.outerjoin(Task)
         query = query.filter(user_service.build_assignee_filter())
+
+    if "is_shared" in criterions:
+        if not is_admin:
+            query = query.join(Project).filter(
+                user_service.build_team_filter()
+            )
 
     if episode_id is not None:
         # Filter based on main episode.
@@ -121,7 +127,7 @@ def get_assets(criterions={}):
         result += [a for a in query.all() if a.source_id != episode_id]
     else:
         result = query.all()
-    return EntityType.serialize_list(result, obj_type="Asset")
+    return Entity.serialize_list(result, obj_type="Asset")
 
 
 def get_all_raw_assets():
@@ -196,6 +202,7 @@ def get_assets_and_tasks(criterions={}, page=1, with_episode_ids=False):
         Task.due_date,
         Task.done_date,
         Task.last_comment_date,
+        Task.difficulty,
         assignees_table.columns.person,
     ).order_by(EntityType.name, Entity.name)
 
@@ -275,6 +282,7 @@ def get_assets_and_tasks(criterions={}, page=1, with_episode_ids=False):
         task_due_date,
         task_done_date,
         task_last_comment_date,
+        task_difficulty,
         person_id,
     ) in query_result:
         if asset.source_id is None:
@@ -306,6 +314,7 @@ def get_assets_and_tasks(criterions={}, page=1, with_episode_ids=False):
                 "episode_id": source_id,
                 "casting_episode_ids": cast_in_episode_ids.get(asset_id, []),
                 "is_casting_standby": asset.is_casting_standby,
+                "is_shared": asset.is_shared,
                 "data": data,
                 "tasks": [],
             }
@@ -331,6 +340,7 @@ def get_assets_and_tasks(criterions={}, page=1, with_episode_ids=False):
                     ),
                     "retake_count": task_retake_count,
                     "start_date": fields.serialize_value(task_start_date),
+                    "difficulty": task_difficulty,
                     "task_status_id": str(task_status_id),
                     "task_type_id": str(task_type_id),
                     "assignees": [],
@@ -571,6 +581,7 @@ def create_asset(
     name,
     description,
     data,
+    is_shared=False,
     source_id=None,
     created_by=None,
 ):
@@ -587,6 +598,7 @@ def create_asset(
         name=name,
         description=description,
         data=data,
+        is_shared=is_shared,
         source_id=source_id,
         created_by=created_by,
     )
@@ -706,3 +718,69 @@ def cancel_asset(asset_id, force=True):
         project_id=str(asset.project_id),
     )
     return asset_dict
+
+
+def set_shared_assets(
+    is_shared=True,
+    project_id=None,
+    asset_type_id=None,
+    asset_ids=None,
+    with_events=False,
+):
+    """
+    Set all assets of a project to is_shared=True or False.
+    """
+
+    query = Entity.query.filter(build_asset_type_filter()).filter()
+
+    if project_id is not None:
+        query = query.filter(Entity.project_id == project_id)
+
+    if asset_type_id is not None:
+        query = query.filter(Entity.entity_type_id == asset_type_id)
+
+    if asset_ids is not None:
+        query = query.filter(Entity.id.in_(asset_ids))
+
+    assets = query.all()
+
+    for asset in assets:
+        asset.update_no_commit({"is_shared": is_shared})
+
+    Entity.commit()
+
+    for asset in assets:
+        asset_id = str(asset.id)
+        clear_asset_cache(asset_id)
+        if with_events:
+            events.emit(
+                "asset:update",
+                {"asset_id": asset_id},
+                project_id=project_id,
+            )
+
+    return Entity.serialize_list(assets, obj_type="Asset")
+
+
+def get_shared_assets_used_in_project(project_id, episode_id=None):
+    """
+    Get all shared assets used in a project.
+    """
+    Shot = aliased(Entity, name="shot")
+    Sequence = aliased(Entity, name="sequence")
+
+    assets = (
+        Entity.query.filter(build_asset_type_filter())
+        .filter(Entity.is_shared == True)
+        .join(EntityLink, EntityLink.entity_out_id == Entity.id)
+        .join(Shot, EntityLink.entity_in_id == Shot.id)
+        .join(Sequence, Shot.parent_id == Sequence.id)
+        .filter(Shot.project_id == project_id)
+        .filter(Entity.canceled != True)
+        .filter(Entity.project_id != project_id)
+    )
+
+    if episode_id is not None and episode_id not in ["main", "all"]:
+        assets = assets.filter(Sequence.parent_id == episode_id)
+
+    return Entity.serialize_list(assets.all(), obj_type="Asset")

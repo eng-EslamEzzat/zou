@@ -254,6 +254,7 @@ def get_shots_and_tasks(criterions={}):
             Task.done_date,
             Task.last_comment_date,
             Task.nb_assets_ready,
+            Task.difficulty,
             assignees_table.columns.person,
             Project.id,
             Project.name,
@@ -304,6 +305,7 @@ def get_shots_and_tasks(criterions={}):
         task_done_date,
         task_last_comment_date,
         task_nb_assets_ready,
+        task_difficulty,
         person_id,
         project_id,
         project_name,
@@ -367,6 +369,7 @@ def get_shots_and_tasks(criterions={}):
                         "real_start_date": task_real_start_date,
                         "retake_count": task_retake_count,
                         "start_date": task_start_date,
+                        "difficulty": task_difficulty,
                         "task_status_id": task_status_id,
                         "task_type_id": task_type_id,
                         "assignees": [],
@@ -1478,7 +1481,7 @@ def get_weighted_quota_shots_between(
     for entity, task_duration, duration in query_shots:
         shot = entity.serialize()
         if shot["id"] not in already_listed:
-            full_name, _ = names_service.get_full_entity_name(shot["id"])
+            full_name, _, _ = names_service.get_full_entity_name(shot["id"])
             shot["full_name"] = full_name
             shot["weight"] = round(duration / task_duration, 2) or 0
             shots.append(shot)
@@ -1525,7 +1528,7 @@ def get_weighted_quota_shots_between(
             business_days = (
                 date_helpers.get_business_days(task_start, task_end) + 1
             )
-            full_name, _ = names_service.get_full_entity_name(shot["id"])
+            full_name, _, _ = names_service.get_full_entity_name(shot["id"])
             shot["full_name"] = full_name
             multiplicator = 1
             if task_start >= start and task_end <= end:
@@ -1583,7 +1586,7 @@ def get_raw_quota_shots_between(
 
     for entity in query_shots:
         shot = entity.serialize()
-        full_name, _ = names_service.get_full_entity_name(shot["id"])
+        full_name, _, _ = names_service.get_full_entity_name(shot["id"])
         shot["full_name"] = full_name
         shot["weight"] = 1
         shots.append(shot)
