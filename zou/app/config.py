@@ -158,7 +158,7 @@ IS_SELF_HOSTED = envtobool("IS_SELF_HOSTED", True)
 
 DEFAULT_TIMEZONE = os.getenv("DEFAULT_TIMEZONE", "Europe/Paris")
 
-USER_LIMIT = int(os.getenv("USER_LIMIT", "100"))
+USER_LIMIT = int(os.getenv("USER_LIMIT", "500"))
 MIN_PASSWORD_LENGTH = int(os.getenv("MIN_PASSWORD_LENGTH", 8))
 PROTECTED_ACCOUNTS = env_with_semicolon_to_list("PROTECTED_ACCOUNTS")
 
@@ -167,7 +167,7 @@ TELEMETRY_URL = os.getenv(
     f"{'http://localhost:8000' if DEBUG else 'https://account.cg-wire.com'}/api/selfhosted/telemetry/new/",
 )
 
-REMOVE_FILES = envtobool("REMOVE_FILES", False)
+REMOVE_FILES = envtobool("REMOVE_FILES", True)
 
 # Deprecated
 TO_REVIEW_TASK_STATUS = "To review"
