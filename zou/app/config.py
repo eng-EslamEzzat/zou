@@ -10,7 +10,7 @@ DEBUG = envtobool("DEBUG", False)
 DEBUG_HOST = os.getenv("DEBUG_HOST", "127.0.0.1")
 DEBUG_PORT = int(os.getenv("DEBUG_PORT", 5000))
 
-APP_NAME = "Zou"
+APP_NAME = "Zou.v1.0-AROMA"
 APP_SYSTEM_ERROR_SUBJECT_LINE = "%s system error" % APP_NAME
 SECRET_KEY = os.getenv("SECRET_KEY", "mysecretkey")
 

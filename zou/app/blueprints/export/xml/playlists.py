@@ -43,7 +43,7 @@ class PlaylistXmlExport(Resource):
     
     def build_track(self, shot):
         entity = entities_service.get_entity(shot["entity_id"])
-        name, _ = names_service.get_full_entity_name(shot["entity_id"])
+        name, episode_id,  _ = names_service.get_full_entity_name(shot["entity_id"])
         duration = entity["nb_frames"] if entity["nb_frames"] else 24
 
         if entity["data"]:
